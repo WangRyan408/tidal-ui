@@ -1,35 +1,33 @@
 import Redis, { type RedisOptions } from 'ioredis';
-import { env } from '$env/dynamic/private';
 
 let client: Redis | null | undefined;
 let hasLoggedError = false;
 
 function logRedisError(error: unknown): void {
-	if (hasLoggedError) return;
-	hasLoggedError = true;
-	console.error('Redis connection error:', error);
+        if (hasLoggedError) return;
+        hasLoggedError = true;
+        console.error('Redis connection error:', error);
 }
 
 function buildOptions(): RedisOptions | string | null {
-	const url = env.REDIS_URL || env.REDIS_CONNECTION_STRING;
-	if (url) {
-		return url;
-	}
+        const url = process.env.REDIS_URL || process.env.REDIS_CONNECTION_STRING;
+        if (url) {
+                return url;
+        }
 
-	const host = env.REDIS_HOST;
-	if (!host) {
-		return null;
-	}
+        const host = process.env.REDIS_HOST;
+        if (!host) {
+                return null;
+        }
 
-	const port = env.REDIS_PORT ? Number.parseInt(env.REDIS_PORT, 10) : 6379;
-	const tlsEnabled = (env.REDIS_TLS || '').toLowerCase() === 'true';
+        const port = process.env.REDIS_PORT ? Number.parseInt(process.env.REDIS_PORT, 10) : 6379;
+        const tlsEnabled = (process.env.REDIS_TLS || '').toLowerCase() === 'true';
 
-	const options: RedisOptions = {
-		host,
-		port,
-		password: env.REDIS_PASSWORD,
-		username: env.REDIS_USERNAME,
-		lazyConnect: true
+        const options: RedisOptions = {
+                host,
+                port,
+                password: process.env.REDIS_PASSWORD,
+                username: process.env.REDIS_USERNAME,
 	};
 
 	if (tlsEnabled) {

@@ -1,45 +1,193 @@
-# lossless-ui
+Welcome to your new TanStack Start app! 
 
-High-fidelity music streaming UI built with SvelteKit and Tailwind.
+# Getting Started
 
-> [!important]
-> I am beginning to retire `tidal-ui` in favour of newer projects such as [Monochrome](https://monochrome.tf) - and will have the repo archived by the end of this month. music.binimum.org will begin to redirect to tidal.squid.wtf over the course of February 2026. Thanks to everybody who used the website for showing so much support - it really means a lot. For clarification - the API will still be maintained into the forseeable future.
+To run this application:
 
-> [!important]
-> Your reminder that music piracy is *illegal* in most countries and this tool is for use by people with an active Tidal account for educational purposes.
+```bash
+npm install
+npm run dev
+```
 
-## See a list of instances of APIs and frontends [here](https://github.com/SamidyFR/monochrome/blob/main/INSTANCES.md).
+# Building For Production
 
-## API + API docs are [here](https://github.com/uimaxbai/hifi-api)
+To build this application for production:
 
-## Features
+```bash
+npm run build
+```
 
-- It works (kinda)
-- Downloads in FLAC up to 24-bit/192kHz
+## Testing
 
-## Run with Docker
+This project uses [Vitest](https://vitest.dev/) for testing. You can run the tests with:
 
-### Quick start with Docker Compose
+```bash
+npm run test
+```
 
-1. Create a `.env` file by copying `.env.example`. Redis is deprecated (don't use it).
+## Styling
 
-2. Build and run the production container:
+This project uses [Tailwind CSS](https://tailwindcss.com/) for styling.
 
-   ```bash
-   docker compose up --build
-   ```
+### Removing Tailwind CSS
 
-3. Visit <http://localhost:5000> once the container finishes booting.
+If you prefer not to use Tailwind CSS:
 
-`docker compose` automatically passes through the optional Redis environment variables and sets `PORT=5000` so the SvelteKit server binds correctly. Stop the stack with `docker compose down` when you are done.
+1. Remove the demo pages in `src/routes/demo/`
+2. Replace the Tailwind import in `src/styles.css` with your own styles
+3. Remove `tailwindcss()` from the plugins array in `vite.config.ts`
+4. Uninstall the packages: `npm install @tailwindcss/vite tailwindcss -D`
 
-Pass any optional configuration (for example `TITLE`) with additional `-e` flags.
 
-## Development Notes
 
-- Redis for this project has been **deprecated**. Don't use it.
-- Some requests are proxied through the first-party SvelteKit route at `/api/proxy` so the browser can call the API without CORS errors.
-- Cached responses are stored only for safe GET requests without `Authorization`, `Cookie`, or `Range` headers. Responses larger than `REDIS_CACHE_MAX_BODY_BYTES`, non-text/JSON payloads, 4xx/5xx statuses, and responses with `Cache-Control: no-store|private` are never cached.
-- Install dependencies with `npm install` after updating `package.json`.
+## Routing
 
-## Todo
+This project uses [TanStack Router](https://tanstack.com/router) with file-based routing. Routes are managed as files in `src/routes`.
+
+### Adding A Route
+
+To add a new route to your application just add a new file in the `./src/routes` directory.
+
+TanStack will automatically generate the content of the route file for you.
+
+Now that you have two routes you can use a `Link` component to navigate between them.
+
+### Adding Links
+
+To use SPA (Single Page Application) navigation you will need to import the `Link` component from `@tanstack/react-router`.
+
+```tsx
+import { Link } from "@tanstack/react-router";
+```
+
+Then anywhere in your JSX you can use it like so:
+
+```tsx
+<Link to="/about">About</Link>
+```
+
+This will create a link that will navigate to the `/about` route.
+
+More information on the `Link` component can be found in the [Link documentation](https://tanstack.com/router/v1/docs/framework/react/api/router/linkComponent).
+
+### Using A Layout
+
+In the File Based Routing setup the layout is located in `src/routes/__root.tsx`. Anything you add to the root route will appear in all the routes. The route content will appear in the JSX where you render `{children}` in the `shellComponent`.
+
+Here is an example layout that includes a header:
+
+```tsx
+import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
+
+export const Route = createRootRoute({
+  head: () => ({
+    meta: [
+      { charSet: 'utf-8' },
+      { name: 'viewport', content: 'width=device-width, initial-scale=1' },
+      { title: 'My App' },
+    ],
+  }),
+  shellComponent: ({ children }) => (
+    <html lang="en">
+      <head>
+        <HeadContent />
+      </head>
+      <body>
+        <header>
+          <nav>
+            <Link to="/">Home</Link>
+            <Link to="/about">About</Link>
+          </nav>
+        </header>
+        {children}
+        <Scripts />
+      </body>
+    </html>
+  ),
+})
+```
+
+More information on layouts can be found in the [Layouts documentation](https://tanstack.com/router/latest/docs/framework/react/guide/routing-concepts#layouts).
+
+## Server Functions
+
+TanStack Start provides server functions that allow you to write server-side code that seamlessly integrates with your client components.
+
+```tsx
+import { createServerFn } from '@tanstack/react-start'
+
+const getServerTime = createServerFn({
+  method: 'GET',
+}).handler(async () => {
+  return new Date().toISOString()
+})
+
+// Use in a component
+function MyComponent() {
+  const [time, setTime] = useState('')
+  
+  useEffect(() => {
+    getServerTime().then(setTime)
+  }, [])
+  
+  return <div>Server time: {time}</div>
+}
+```
+
+## API Routes
+
+You can create API routes by using the `server` property in your route definitions:
+
+```tsx
+import { createFileRoute } from '@tanstack/react-router'
+import { json } from '@tanstack/react-start'
+
+export const Route = createFileRoute('/api/hello')({
+  server: {
+    handlers: {
+      GET: () => json({ message: 'Hello, World!' }),
+    },
+  },
+})
+```
+
+## Data Fetching
+
+There are multiple ways to fetch data in your application. You can use TanStack Query to fetch data from a server. But you can also use the `loader` functionality built into TanStack Router to load the data for a route before it's rendered.
+
+For example:
+
+```tsx
+import { createFileRoute } from '@tanstack/react-router'
+
+export const Route = createFileRoute('/people')({
+  loader: async () => {
+    const response = await fetch('https://swapi.dev/api/people')
+    return response.json()
+  },
+  component: PeopleComponent,
+})
+
+function PeopleComponent() {
+  const data = Route.useLoaderData()
+  return (
+    <ul>
+      {data.results.map((person) => (
+        <li key={person.name}>{person.name}</li>
+      ))}
+    </ul>
+  )
+}
+```
+
+Loaders simplify your data fetching logic dramatically. Check out more information in the [Loader documentation](https://tanstack.com/router/latest/docs/framework/react/guide/data-loading#loader-parameters).
+
+# Demo files
+
+Files prefixed with `demo` can be safely deleted. They are there to provide a starting point for you to play around with the features you've installed.
+
+# Learn More
+
+You can learn more about all of the offerings from TanStack in the [TanStack documentation](https://tanstack.com).
+
+For TanStack Start specific documentation, visit [TanStack Start](https://tanstack.com/start).

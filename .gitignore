@@ -10,20 +10,12 @@ node_modules
 /dist
 # OS
 .DS_Store
-Thumbs.db
-
-# Env
+dist
+dist-ssr
+*.local
 .env
-.env.*
-!.env.example
-!.env.test
-
-# Vite
-vite.config.js.timestamp-*
-vite.config.ts.timestamp-*
-
-# more squidly things
-docker-compose.yml
-
-.venv
-downloaded_files
+.nitro
+.tanstack
+.vinxi
+__unconfig*
+todos.json
