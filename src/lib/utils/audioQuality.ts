@@ -1,4 +1,4 @@
-import type { AudioQuality, Track } from '$lib/types';
+import type { AudioQuality, Track } from '@/lib/types';
 
 const QUALITY_PRIORITY: readonly AudioQuality[] = [
 	'HI_RES_LOSSLESS',

@@ -1,9 +1,9 @@
 // API service for HIFI API
 import { API_CONFIG, fetchWithCORS, selectApiTargetForRegion } from './config';
-import type { RegionOption } from '$lib/stores/region';
-import { deriveTrackQuality } from '$lib/utils/audioQuality';
-import { parseTidalUrl, type TidalUrlParseResult } from '$lib/utils/urlParser';
-import { formatArtistsForMetadata } from '$lib/utils';
+import type { RegionOption } from '@/lib/features/regionSlice';
+import { deriveTrackQuality } from '@/lib/utils/audioQuality';
+import { parseTidalUrl, type TidalUrlParseResult } from '@/lib/utils/urlParser';
+import { formatArtistsForMetadata } from '@/lib/utils';
 import type {
 	Track,
 	Artist,

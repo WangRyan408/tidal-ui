@@ -1,7 +1,7 @@
-import { losslessAPI } from '$lib/api';
-import type { Album, Track, AudioQuality } from '$lib/types';
-import type { DownloadMode } from '$lib/stores/downloadPreferences';
-import { formatArtists } from '$lib/utils';
+import { losslessAPI } from '@/lib/api';
+import type { Album, Track, AudioQuality } from '@/lib/types';
+import type { DownloadMode } from '@/lib/features/downloadPreferencesSlice';
+import { formatArtists } from '@/lib/utils';
 import JSZip from 'jszip';
 
 function detectImageFormat(data: Uint8Array): { extension: string; mimeType: string } | null {

@@ -1,4 +1,4 @@
-import { APP_VERSION } from '$lib/version';
+import { APP_VERSION } from '@/lib/version';
 
 // CORS Proxy Configuration
 // If you're experiencing CORS issues with the HIFI API, you can set up a proxy
