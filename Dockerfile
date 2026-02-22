@@ -24,7 +24,8 @@ RUN bun install --frozen-lockfile --production
 
 # Copy built server/client assets
 COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/docker-server.mjs ./docker-server.mjs
 
 EXPOSE 5000
 
-CMD ["bun", "dist/server/server.js"]
+CMD ["bun", "docker-server.mjs"]
