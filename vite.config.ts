@@ -48,6 +48,12 @@ const config = defineConfig({
       },
     },
   },
+  server: {
+    host: true,
+  },
+  optimizeDeps: {
+    exclude: ['@ffmpeg/ffmpeg', '@ffmpeg/util'],
+  },
 })
 
 export default config

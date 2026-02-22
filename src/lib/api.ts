@@ -2,7 +2,7 @@
 import { API_CONFIG, fetchWithCORS, selectApiTargetForRegion } from './config';
 import type { RegionOption } from '@/lib/features/regionSlice';
 import { deriveTrackQuality } from '@/lib/utils/audioQuality';
-import { parseTidalUrl, type TidalUrlParseResult } from '@/lib/utils/urlParser';
+import { parseTidalUrl } from '@/lib/utils/urlParser';
 import { formatArtistsForMetadata } from '@/lib/utils';
 import type {
 	Track,
@@ -2050,7 +2050,14 @@ class LosslessAPI {
 
 			// Execute FFmpeg with timeout protection (3 minutes for large files)
 			const timeoutMs = 180000; // 3 minutes
-			const execPromise = ffmpeg.exec(args);
+			console.log('[FFMPEG] Starting ffmpeg.exec(args)...', args);
+			const execPromise = ffmpeg.exec(args).then((ret) => {
+				console.log('[FFMPEG] ffmpeg.exec finished successfully!', ret);
+				return ret;
+			}).catch((err) => {
+				console.error('[FFMPEG] ffmpeg.exec threw error!', err);
+				throw err;
+			});
 			const timeoutPromise = new Promise<never>((_, reject) => {
 				setTimeout(() => {
 					reject(
@@ -2063,6 +2070,7 @@ class LosslessAPI {
 
 			try {
 				await Promise.race([execPromise, timeoutPromise]);
+				console.log('[FFMPEG] Promise.race completed!');
 			} catch (execError) {
 				// Check if it's a timeout
 				const errorMessage = execError instanceof Error ? execError.message : String(execError);
@@ -2086,7 +2094,9 @@ class LosslessAPI {
 				throw execError;
 			}
 
+			console.log(`[FFMPEG] Reading file ${outputName}...`);
 			const outputData = await ffmpeg.readFile(outputName);
+			console.log('[FFMPEG] readFile completed. Length:', outputData.length ?? (outputData as any)?.byteLength);
 			if (options?.onProgress) {
 				options.onProgress({ stage: 'embedding', progress: 1 });
 			}
@@ -2370,16 +2380,20 @@ class LosslessAPI {
 	): Promise<void> {
 		try {
 			const { blob } = await this.fetchTrackBlob(trackId, quality, filename, options);
-			const url = URL.createObjectURL(blob);
+			console.log(`[Download] Starting upload of ${filename} to /api/save (${blob.size} bytes)`);
+			const saveResponse = await fetch('/api/save', {
+				method: 'POST',
+				body: blob,
+				headers: {
+					'x-filename': encodeURIComponent(filename)
+				}
+			});
+			console.log(`[Download] Upload finished with status ${saveResponse.status}`);
 
-			// Trigger download
-			const a = document.createElement('a');
-			a.href = url;
-			a.download = filename;
-			document.body.appendChild(a);
-			a.click();
-			document.body.removeChild(a);
-			URL.revokeObjectURL(url);
+			if (!saveResponse.ok) {
+				const errorText = await saveResponse.text();
+				throw new Error(`Failed to save to server: ${errorText}`);
+			}
 
 			// Download cover separately if enabled
 			if (options?.downloadCoverSeperately) {
@@ -2486,14 +2500,18 @@ class LosslessAPI {
 									// Create blob with correct MIME type
 									const coverBlob = new Blob([uint8Array], { type: imageFormat.mimeType });
 
-									const coverObjectUrl = URL.createObjectURL(coverBlob);
-									const coverLink = document.createElement('a');
-									coverLink.href = coverObjectUrl;
-									coverLink.download = `cover.${imageFormat.extension}`;
-									document.body.appendChild(coverLink);
-									coverLink.click();
-									document.body.removeChild(coverLink);
-									URL.revokeObjectURL(coverObjectUrl);
+									const coverFilename = `cover.${imageFormat.extension}`;
+									const coverSaveResponse = await fetch('/api/save', {
+										method: 'POST',
+										body: coverBlob,
+										headers: {
+											'x-filename': encodeURIComponent(coverFilename)
+										}
+									});
+									
+									if (!coverSaveResponse.ok) {
+										throw new Error(`Failed to save cover: ${await coverSaveResponse.text()}`);
+									}
 
 									coverDownloadSuccess = true;
 									console.log(

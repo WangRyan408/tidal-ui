@@ -57,9 +57,11 @@ async function streamAsset(
 	context?: {
 		zTotalKnown?: number;
 		onChunk?: (bytes: number) => void;
-	}
+	},
+	mimeType?: string
 ): Promise<{ url: string; size: number | undefined }> {
-	const response = await fetch(`${CORE_BASE_URL}/${path}`, {
+	const url = path.startsWith('http') ? path : `${CORE_BASE_URL}/${path}`;
+	const response = await fetch(url, {
 		signal: options?.signal
 	});
 	if (!response.ok) {
@@ -72,9 +74,10 @@ async function streamAsset(
 
 	if (!response.body) {
 		const blob = await response.blob();
-		const size = blob.size > 0 ? blob.size : resolvedTotal;
+		const finalBlob = new Blob([blob], { type: mimeType ?? blob.type });
+		const size = finalBlob.size > 0 ? finalBlob.size : resolvedTotal;
 		return {
-			url: URL.createObjectURL(blob),
+			url: URL.createObjectURL(finalBlob),
 			size
 		};
 	}
@@ -92,7 +95,7 @@ async function streamAsset(
 	}
 
 	const blob = new Blob(chunks as BlobPart[], {
-		type: response.headers.get('Content-Type') ?? 'application/octet-stream'
+		type: mimeType ?? response.headers.get('Content-Type') ?? 'application/octet-stream'
 	});
 	return {
 		url: URL.createObjectURL(blob),
@@ -126,13 +129,13 @@ async function ensureAssets(options?: FfmpegLoadOptions) {
 		};
 
 		const { url: coreUrl, size: fetchedJsSize } = await streamAsset(CORE_JS_NAME, options, {
-			zTotalKnown: totalKnown > 0 ? totalKnown : undefined,
+			zTotalKnown: jsSize ?? undefined,
 			onChunk: notify
-		});
+		}, 'text/javascript');
 		const { url: wasmUrl, size: fetchedWasmSize } = await streamAsset(CORE_WASM_NAME, options, {
-			zTotalKnown: totalKnown > 0 ? totalKnown : undefined,
+			zTotalKnown: wasmSize ?? undefined,
 			onChunk: notify
-		});
+		}, 'application/wasm');
 
 		const totalBytes = [jsSize ?? fetchedJsSize, wasmSize ?? fetchedWasmSize]
 			.filter((value): value is number => Number.isFinite(value ?? NaN))
@@ -186,16 +189,20 @@ export async function getFFmpeg(options?: FfmpegLoadOptions): Promise<FFmpegInst
 			const instance = new FFmpegConstructor();
 			
 			const assets = await ensureAssets(options);
+			console.log('[FFMPEG CLIENT] ensureAssets finished!', assets);
 			
 			// Load with memory optimization for WebAssembly
+			console.log('[FFMPEG CLIENT] Calling instance.load()...');
 			await instance.load({
 				coreURL: assets.coreUrl,
 				wasmURL: assets.wasmUrl
 			});
+			console.log('[FFMPEG CLIENT] instance.load() completed successfully!');
 			
 			ffmpegInstance = instance;
 			URL.revokeObjectURL(assets.coreUrl);
 			URL.revokeObjectURL(assets.wasmUrl);
+			console.log('[FFMPEG CLIENT] FFmpeg instance is ready to use.');
 			return instance;
 		})().catch((error) => {
 			loadPromise = null;

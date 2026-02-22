@@ -204,14 +204,6 @@ export function selectApiTargetForRegion(region: RegionPreference): ApiClusterTa
 	return selectFromWeightedTargets(weighted);
 }
 
-export function hasRegionTargets(region: RegionPreference): boolean {
-	if (region === 'auto') {
-		return TARGET_COLLECTIONS.auto.length > 0;
-	}
-
-	return getTargetsForRegion(region).length > 0;
-}
-
 function parseTargetBase(target: ApiClusterTarget): URL | null {
 	try {
 		return new URL(target.baseUrl);

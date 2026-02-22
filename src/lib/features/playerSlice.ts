@@ -145,6 +145,17 @@ export const playerSlice = createSlice({
 		setQuality: (state, action: PayloadAction<AudioQuality>) => {
 			state.quality = action.payload;
 			state.qualitySource = 'manual';
+			// Sync quality to userPreferences localStorage (matches Svelte's userPreferencesStore.setPlaybackQuality)
+			if (typeof window !== 'undefined') {
+				try {
+					const stored = localStorage.getItem('tidal-ui.userPreferences');
+					const prefs = stored ? JSON.parse(stored) : {};
+					prefs.playbackQuality = action.payload;
+					localStorage.setItem('tidal-ui.userPreferences', JSON.stringify(prefs));
+				} catch (error) {
+					console.warn('Failed to persist quality to user preferences', error);
+				}
+			}
 		},
 		setLoading: (state, action: PayloadAction<boolean>) => {
 			state.isLoading = action.payload;

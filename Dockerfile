@@ -1,36 +1,30 @@
-# Use a Node.js Slim image for the builder stage
-FROM node:24.0.1-slim AS builder
+# Use Bun slim image for the builder stage
+FROM oven/bun:slim AS builder
 
-# Set the working directory
 WORKDIR /app
 
-# Copy package files and install dependencies
-COPY package*.json ./
-RUN npm ci
+# Install dependencies with Bun
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile
 
-# Copy the rest of the source files and build the SvelteKit app
+# Build application
 COPY . .
-RUN npm run build
+RUN bun run build
 
-# Prune dependencies to production-only
-RUN npm prune --production
+# Use Bun slim image for runtime stage
+FROM oven/bun:slim AS runner
 
-# Use another Node.js Slim image for the final stage
-FROM node:24.0.1-slim AS runner
-
-# Set the working directory
 WORKDIR /app
 
-# Copy the built app and production node_modules from the builder stage
-COPY --from=builder /app/build build/
-COPY --from=builder /app/node_modules node_modules/
-COPY package.json .
-
-# Expose the port the app runs on
-EXPOSE 5000
-
-# Set the environment to production
 ENV NODE_ENV=production
 
-# Specify the command to run the app
-CMD ["node", "build"]
+# Install only production dependencies
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile --production
+
+# Copy built server/client assets
+COPY --from=builder /app/dist ./dist
+
+EXPOSE 5000
+
+CMD ["bun", "dist/server/server.js"]

@@ -69,7 +69,7 @@ const TrackList: React.FC<TrackListProps> = ({ tracks, showAlbum = true, showArt
     }
   };
 
-  const handlePlayTrack = (track: Track, index: number) => {
+  const handlePlayTrack = (index: number) => {
     dispatch(setQueue({ tracks, index }));
     dispatch(play());
   };
@@ -168,7 +168,7 @@ const TrackList: React.FC<TrackListProps> = ({ tracks, showAlbum = true, showArt
         onFfmpegStart: () => dispatch(startFfmpegLoading()),
         onFfmpegProgress: (value) => dispatch(updateFfmpegProgress(value)),
         onFfmpegComplete: () => dispatch(completeFfmpeg()),
-        onFfmpegError: (error) => dispatch(errorFfmpeg(error)),
+        onFfmpegError: (error) => dispatch(errorFfmpeg(error instanceof Error ? error.message : typeof error === 'string' ? error : 'Failed to load FFmpeg')),
         ffmpegAutoTriggered: false,
         convertAacToMp3: convertAacToMp3Preference,
         downloadCoverSeperately: downloadCoverSeperatelyPreference
@@ -222,7 +222,7 @@ const TrackList: React.FC<TrackListProps> = ({ tracks, showAlbum = true, showArt
               className={`track-row ${isCurrentTrack(track) ? 'track-row--active' : ''}`}
             >
               <button
-                onClick={() => handlePlayTrack(track, index)}
+                onClick={() => handlePlayTrack(index)}
                 className="track-row__play-btn touch-target"
                 aria-label={isPlaying(track) ? 'Pause' : 'Play'}
               >
@@ -249,7 +249,7 @@ const TrackList: React.FC<TrackListProps> = ({ tracks, showAlbum = true, showArt
 
               <div className="track-row__info">
                 <button
-                  onClick={() => handlePlayTrack(track, index)}
+                  onClick={() => handlePlayTrack(index)}
                   className={`track-row__title ${isCurrentTrack(track) ? 'track-row__title--active' : ''}`}
                 >
                   {track.title}

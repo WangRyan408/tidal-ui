@@ -16,6 +16,7 @@ import { Route as ArtistIdRouteImport } from './routes/artist/$id'
 import { Route as AlbumIdRouteImport } from './routes/album/$id'
 import { Route as ApiSpotifyPlaylistRouteRouteImport } from './routes/api/spotify-playlist/route'
 import { Route as ApiSonglinkRouteRouteImport } from './routes/api/songlink/route'
+import { Route as ApiSaveRouteRouteImport } from './routes/api/save/route'
 import { Route as ApiProxyRouteRouteImport } from './routes/api/proxy/route'
 import { Route as EmbedTrackIdRouteImport } from './routes/embed/track/$id'
 import { Route as EmbedPlaylistIdRouteImport } from './routes/embed/playlist/$id'
@@ -58,6 +59,11 @@ const ApiSonglinkRouteRoute = ApiSonglinkRouteRouteImport.update({
   path: '/api/songlink',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiSaveRouteRoute = ApiSaveRouteRouteImport.update({
+  id: '/api/save',
+  path: '/api/save',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiProxyRouteRoute = ApiProxyRouteRouteImport.update({
   id: '/api/proxy',
   path: '/api/proxy',
@@ -92,6 +98,7 @@ const ApiArtworkTypeIdSizeRoute = ApiArtworkTypeIdSizeRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/api/proxy': typeof ApiProxyRouteRoute
+  '/api/save': typeof ApiSaveRouteRoute
   '/api/songlink': typeof ApiSonglinkRouteRoute
   '/api/spotify-playlist': typeof ApiSpotifyPlaylistRouteRoute
   '/album/$id': typeof AlbumIdRoute
@@ -107,6 +114,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/api/proxy': typeof ApiProxyRouteRoute
+  '/api/save': typeof ApiSaveRouteRoute
   '/api/songlink': typeof ApiSonglinkRouteRoute
   '/api/spotify-playlist': typeof ApiSpotifyPlaylistRouteRoute
   '/album/$id': typeof AlbumIdRoute
@@ -123,6 +131,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/api/proxy': typeof ApiProxyRouteRoute
+  '/api/save': typeof ApiSaveRouteRoute
   '/api/songlink': typeof ApiSonglinkRouteRoute
   '/api/spotify-playlist': typeof ApiSpotifyPlaylistRouteRoute
   '/album/$id': typeof AlbumIdRoute
@@ -140,6 +149,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/api/proxy'
+    | '/api/save'
     | '/api/songlink'
     | '/api/spotify-playlist'
     | '/album/$id'
@@ -155,6 +165,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/api/proxy'
+    | '/api/save'
     | '/api/songlink'
     | '/api/spotify-playlist'
     | '/album/$id'
@@ -170,6 +181,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/api/proxy'
+    | '/api/save'
     | '/api/songlink'
     | '/api/spotify-playlist'
     | '/album/$id'
@@ -186,6 +198,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ApiProxyRouteRoute: typeof ApiProxyRouteRoute
+  ApiSaveRouteRoute: typeof ApiSaveRouteRoute
   ApiSonglinkRouteRoute: typeof ApiSonglinkRouteRoute
   ApiSpotifyPlaylistRouteRoute: typeof ApiSpotifyPlaylistRouteRoute
   AlbumIdRoute: typeof AlbumIdRoute
@@ -250,6 +263,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiSonglinkRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/save': {
+      id: '/api/save'
+      path: '/api/save'
+      fullPath: '/api/save'
+      preLoaderRoute: typeof ApiSaveRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/proxy': {
       id: '/api/proxy'
       path: '/api/proxy'
@@ -298,6 +318,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ApiProxyRouteRoute: ApiProxyRouteRoute,
+  ApiSaveRouteRoute: ApiSaveRouteRoute,
   ApiSonglinkRouteRoute: ApiSonglinkRouteRoute,
   ApiSpotifyPlaylistRouteRoute: ApiSpotifyPlaylistRouteRoute,
   AlbumIdRoute: AlbumIdRoute,

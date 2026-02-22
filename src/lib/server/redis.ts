@@ -60,6 +60,3 @@ export function getRedisClient(): Redis | null {
 	}
 }
 
-export function isRedisEnabled(): boolean {
-	return getRedisClient() !== null;
-}

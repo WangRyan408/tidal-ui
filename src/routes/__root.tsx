@@ -5,6 +5,7 @@ import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { TanStackDevtools } from '@tanstack/react-devtools'
 import { store } from '@/lib/store'
 import AudioPlayer from '@/components/AudioPlayer'
+import SettingsMenu from '@/components/SettingsMenu'
 
 import appCss from '../styles.css?url'
 
@@ -67,7 +68,12 @@ function AppShell({ children }: { children: ReactNode }) {
   const isEmbedRoute = pathname.startsWith('/embed/')
 
   return (
-    <div className="safe-area-x safe-area-top min-h-screen">
+    <div className="safe-area-x safe-area-top min-h-screen relative">
+      {!isEmbedRoute && (
+        <div className="absolute top-4 right-4 z-[100] sm:right-6 lg:right-8">
+          <SettingsMenu />
+        </div>
+      )}
       {children}
       <AudioPlayer headless={isEmbedRoute} />
     </div>

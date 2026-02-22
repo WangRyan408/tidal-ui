@@ -57,7 +57,7 @@ const TopTracksGrid: React.FC<TopTracksGridProps> = ({ tracks, maxTracks = 6, co
     return tags.filter((tag) => tag && !IGNORED_TAGS.has(tag));
   };
 
-  const handlePlayTrack = (track: Track, index: number) => {
+  const handlePlayTrack = (index: number) => {
     dispatch(setQueue({ tracks: displayedTracks, index }));
     dispatch(play());
   };
@@ -72,10 +72,10 @@ const TopTracksGrid: React.FC<TopTracksGridProps> = ({ tracks, maxTracks = 6, co
     dispatch(enqueueNext(track));
   };
 
-  const handleCardKeydown = (event: React.KeyboardEvent, track: Track, index: number) => {
+  const handleCardKeydown = (event: React.KeyboardEvent, index: number) => {
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
-      handlePlayTrack(track, index);
+      handlePlayTrack(index);
     }
   };
 
@@ -171,7 +171,7 @@ const TopTracksGrid: React.FC<TopTracksGridProps> = ({ tracks, maxTracks = 6, co
         onFfmpegStart: () => dispatch(startFfmpegLoading()),
         onFfmpegProgress: (value) => dispatch(updateFfmpegProgress(value)),
         onFfmpegComplete: () => dispatch(completeFfmpeg()),
-        onFfmpegError: (error) => dispatch(errorFfmpeg(error)),
+        onFfmpegError: (error) => dispatch(errorFfmpeg(error instanceof Error ? error.message : typeof error === 'string' ? error : 'Failed to load FFmpeg')),
         ffmpegAutoTriggered: false,
         convertAacToMp3: convertAacToMp3Preference,
         downloadCoverSeperately: downloadCoverSeperatelyPreference
@@ -215,15 +215,15 @@ const TopTracksGrid: React.FC<TopTracksGridProps> = ({ tracks, maxTracks = 6, co
             key={track.id}
             role="button"
             tabIndex={0}
-            onClick={() => handlePlayTrack(track, index)}
-            onKeyDown={(event) => handleCardKeydown(event, track, index)}
+            onClick={() => handlePlayTrack(index)}
+            onKeyDown={(event) => handleCardKeydown(event, index)}
             className="group flex h-full cursor-pointer flex-col gap-4 rounded-xl border border-gray-800 bg-gray-900/50 p-4 transition-colors hover:border-blue-700 hover:bg-gray-900/70 focus:ring-2 focus:ring-blue-500 focus:outline-none"
           >
             <div className="flex items-start gap-4">
               <button
                 onClick={(event) => {
                   event.stopPropagation();
-                  handlePlayTrack(track, index);
+                  handlePlayTrack(index);
                 }}
                 className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-gray-800 transition-transform hover:scale-110"
                 aria-label={isPlaying(track) ? 'Pause' : 'Play'}

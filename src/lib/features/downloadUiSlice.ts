@@ -121,7 +121,6 @@ export const downloadUiSlice = createSlice({
 				subtitle?: string;
 				taskId?: string;
 				id?: string;
-				controller?: AbortController;
 			}>
 		) => {
 			const { track, filename, subtitle } = action.payload;
@@ -192,20 +191,14 @@ export const downloadUiSlice = createSlice({
 			action: PayloadAction<{
 				taskId?: string;
 				id?: string;
-				error: string | Error | unknown;
+				error: string;
 			}>
 		) => {
 			const taskId = action.payload.taskId ?? action.payload.id;
 			if (!taskId) return;
-			const { error } = action.payload;
 			mutateTask(state, taskId, {
 				status: 'error',
-				error:
-					error instanceof Error
-						? error.message
-						: typeof error === 'string'
-							? error
-							: 'Download failed',
+				error: action.payload.error || 'Download failed',
 				cancellable: false
 			});
 		},
@@ -277,18 +270,13 @@ export const downloadUiSlice = createSlice({
 				updatedAt: Date.now()
 			};
 		},
-		errorFfmpeg: (state, action: PayloadAction<string | Error | unknown>) => {
+		errorFfmpeg: (state, action: PayloadAction<string>) => {
 			state.ffmpeg = {
 				...state.ffmpeg,
 				phase: 'error',
 				progress: 0,
 				dismissible: true,
-				error:
-					action.payload instanceof Error
-						? action.payload.message
-						: typeof action.payload === 'string'
-							? action.payload
-							: 'Failed to load FFmpeg',
+				error: action.payload || 'Failed to load FFmpeg',
 				updatedAt: Date.now()
 			};
 		},

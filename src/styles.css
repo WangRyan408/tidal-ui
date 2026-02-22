@@ -1,1 +1,55 @@
 @import '../svelte-backup/src/app.css';
+
+.audio-player-backdrop {
+	isolation: isolate;
+}
+
+.audio-player-backdrop::before {
+	content: '';
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	z-index: 0;
+	backdrop-filter: blur(20px);
+	-webkit-backdrop-filter: blur(20px);
+	mask: linear-gradient(to bottom, transparent 0%, black 25%);
+}
+
+.audio-player-backdrop > * {
+	position: relative;
+	z-index: 1;
+}
+
+.audio-player-glass {
+	background: rgba(2, 6, 23, 0.84);
+	border-color: rgba(148, 163, 184, 0.24);
+	backdrop-filter: blur(var(--perf-blur-high, 32px)) saturate(var(--perf-saturate, 160%));
+	-webkit-backdrop-filter: blur(var(--perf-blur-high, 32px)) saturate(var(--perf-saturate, 160%));
+	box-shadow:
+		0 30px 80px rgba(2, 6, 23, 0.68),
+		0 4px 18px rgba(15, 23, 42, 0.5),
+		inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.ffmpeg-banner {
+	background: rgba(15, 23, 42, 0.9);
+	border-color: var(--bloom-accent, rgba(59, 130, 246, 0.7));
+	backdrop-filter: blur(var(--perf-blur-high, 32px)) saturate(var(--perf-saturate, 160%));
+	-webkit-backdrop-filter: blur(var(--perf-blur-high, 32px)) saturate(var(--perf-saturate, 160%));
+	box-shadow:
+		0 12px 32px rgba(2, 6, 23, 0.56),
+		0 2px 8px rgba(59, 130, 246, 0.2),
+		inset 0 1px 0 rgba(255, 255, 255, 0.08),
+		inset 0 0 30px rgba(59, 130, 246, 0.08);
+}
+
+.download-popup {
+	background: rgba(15, 23, 42, 0.9);
+	border-color: rgba(148, 163, 184, 0.22);
+	backdrop-filter: blur(var(--perf-blur-high, 32px)) saturate(var(--perf-saturate, 160%));
+	-webkit-backdrop-filter: blur(var(--perf-blur-high, 32px)) saturate(var(--perf-saturate, 160%));
+	box-shadow:
+		0 12px 32px rgba(2, 6, 23, 0.56),
+		0 2px 8px rgba(15, 23, 42, 0.4),
+		inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}

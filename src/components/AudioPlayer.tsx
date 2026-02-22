@@ -3,7 +3,7 @@ import { useAppDispatch, useAppSelector } from '@/lib/hooks';
 import { losslessAPI, DASH_MANIFEST_UNAVAILABLE_CODE, type TrackDownloadProgress } from '@/lib/api';
 import type { DashManifestResult, DashManifestWithMetadata } from '@/lib/api';
 import { getProxiedUrl } from '@/lib/config';
-import { sanitizeForFilename, getExtensionForQuality, buildTrackFilename } from '@/lib/downloads';
+import { buildTrackFilename } from '@/lib/downloads';
 import { formatArtists } from '@/lib/utils';
 import { deriveTrackQuality } from '@/lib/utils/audioQuality';
 import type { Track, AudioQuality, SonglinkTrack, PlayableTrack } from '@/lib/types';
@@ -182,18 +182,16 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ onHeightChange, headless = fa
 	const [isMuted, setIsMuted] = useState(false);
 	const [previousVolume, setPreviousVolume] = useState(0.8);
 	const [currentTrackId, setCurrentTrackId] = useState<number | null>(null);
-	const [loadSequence, setLoadSequence] = useState(0);
+	const loadSequenceRef = useRef(0);
 	const [bufferedPercent, setBufferedPercent] = useState(0);
 	const [lastQualityTrackId, setLastQualityTrackId] = useState<number | string | null>(null);
 	const [lastQualityForTrack, setLastQualityForTrack] = useState<AudioQuality | null>(null);
 	const [currentPlaybackQuality, setCurrentPlaybackQuality] = useState<AudioQuality | null>(null);
 	const [isDownloadingCurrentTrack, setIsDownloadingCurrentTrack] = useState(false);
-	const [downloadTaskIdForCurrentTrack, setDownloadTaskIdForCurrentTrack] = useState<string | null>(null);
 	const [showQueuePanel, setShowQueuePanel] = useState(false);
 	const [dashPlaybackActive, setDashPlaybackActive] = useState(false);
 	const [dashFallbackAttemptedTrackId, setDashFallbackAttemptedTrackId] = useState<number | string | null>(null);
 	const [dashFallbackInFlight, setDashFallbackInFlight] = useState(false);
-	const [isSeeking, setIsSeeking] = useState(false);
 
 	const streamCacheRef = useRef(new Map<string, { url: string; replayGain: number | null; sampleRate: number | null; bitDepth: number | null }>());
 	const preloadingCacheKeyRef = useRef<string | null>(null);
@@ -258,7 +256,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ onHeightChange, headless = fa
 			shakaPlayerRef.current = new shakaNamespaceRef.current.Player(audioElementRef.current);
 			const networking = shakaPlayerRef.current.getNetworkingEngine?.();
 			if (networking && !shakaNetworkingConfiguredRef.current) {
-				networking.registerRequestFilter((type, request) => {
+				networking.registerRequestFilter((_type, request) => {
 					if (request.method === 'HEAD') {
 						request.method = 'GET';
 					}
@@ -497,20 +495,17 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ onHeightChange, headless = fa
 		await destroyShakaPlayer();
 		setDashPlaybackActive(false);
 		const { url, replayGain, sampleRate, bitDepth } = await resolveStream(track, quality);
-		setLoadSequence(prev => {
-			if (sequence !== prev) return prev;
-			setStreamUrl(url);
-			setCurrentPlaybackQuality(quality);
-			dispatch(setReplayGain(replayGain));
-			dispatch(setSampleRate(sampleRate));
-			dispatch(setBitDepth(bitDepth));
-			pruneStreamCache();
-			if (audioElementRef.current) {
-				audioElementRef.current.crossOrigin = 'anonymous';
-				audioElementRef.current.load();
-			}
-			return prev;
-		});
+		if (sequence !== loadSequenceRef.current) return;
+		setStreamUrl(url);
+		setCurrentPlaybackQuality(quality);
+		dispatch(setReplayGain(replayGain));
+		dispatch(setSampleRate(sampleRate));
+		dispatch(setBitDepth(bitDepth));
+		pruneStreamCache();
+		if (audioElementRef.current) {
+			audioElementRef.current.crossOrigin = 'anonymous';
+			audioElementRef.current.load();
+		}
 	}, [destroyShakaPlayer, resolveStream, dispatch, pruneStreamCache]);
 
 	const loadDashTrack = useCallback(async (
@@ -537,38 +532,30 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ onHeightChange, headless = fa
 		hiResObjectUrlRef.current = URL.createObjectURL(blob);
 		const player = await ensureShakaPlayer();
 		
-		return new Promise<DashManifestWithMetadata>((resolve) => {
-			setLoadSequence(prev => {
-				if (sequence !== prev) {
-					resolve(cached!);
-					return prev;
-				}
-				if (audioElementRef.current) {
-					audioElementRef.current.pause();
-					audioElementRef.current.removeAttribute('src');
-					audioElementRef.current.load();
-				}
-				player.unload().then(() => {
-					player.load(hiResObjectUrlRef.current!).then(() => {
-						setDashPlaybackActive(true);
-						setStreamUrl('');
-						setCurrentPlaybackQuality('HI_RES_LOSSLESS');
-						
-						if (currentTrackId === track.id) {
-							dispatch(setSampleRate(trackInfo.sampleRate));
-							dispatch(setBitDepth(trackInfo.bitDepth));
-							if (trackInfo.replayGain !== null) {
-								dispatch(setReplayGain(trackInfo.replayGain));
-							}
-						}
-						
-						pruneDashManifestCache();
-						resolve(cached!);
-					});
-				});
-				return prev;
-			});
-		});
+		if (sequence !== loadSequenceRef.current) {
+			return cached!;
+		}
+		if (audioElementRef.current) {
+			audioElementRef.current.pause();
+			audioElementRef.current.removeAttribute('src');
+			audioElementRef.current.load();
+		}
+		await player.unload();
+		await player.load(hiResObjectUrlRef.current!);
+		setDashPlaybackActive(true);
+		setStreamUrl('');
+		setCurrentPlaybackQuality('HI_RES_LOSSLESS');
+		
+		if (currentTrackId === track.id) {
+			dispatch(setSampleRate(trackInfo.sampleRate));
+			dispatch(setBitDepth(trackInfo.bitDepth));
+			if (trackInfo.replayGain !== null) {
+				dispatch(setReplayGain(trackInfo.replayGain));
+			}
+		}
+		
+		pruneDashManifestCache();
+		return cached!;
 	}, [cacheFlacFallback, revokeHiResObjectUrl, ensureShakaPlayer, currentTrackId, dispatch, pruneDashManifestCache]);
 
 	const loadTrack = useCallback(async (track: PlayableTrack) => {
@@ -584,11 +571,8 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ onHeightChange, headless = fa
 			return;
 		}
 
-		let sequence: number;
-		setLoadSequence(prev => {
-			sequence = prev + 1;
-			return sequence;
-		});
+		loadSequenceRef.current += 1;
+		const sequence = loadSequenceRef.current;
 		
 		dispatch(setLoading(true));
 		setBufferedPercent(0);
@@ -627,21 +611,15 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ onHeightChange, headless = fa
 			await loadStandardTrack(tidalTrack, requestedQuality, sequence!);
 		} catch (error) {
 			console.error('Failed to load track:', error);
-			setLoadSequence(prev => {
-				if (sequence === prev && requestedQuality !== 'LOSSLESS' && !isHiResQuality(requestedQuality)) {
-					loadStandardTrack(tidalTrack, 'LOSSLESS', sequence).catch(fallbackError => {
-						console.error('Secondary lossless fallback failed:', fallbackError);
-					});
-				}
-				return prev;
-			});
+			if (sequence === loadSequenceRef.current && requestedQuality !== 'LOSSLESS' && !isHiResQuality(requestedQuality)) {
+				loadStandardTrack(tidalTrack, 'LOSSLESS', sequence).catch(fallbackError => {
+					console.error('Secondary lossless fallback failed:', fallbackError);
+				});
+			}
 		} finally {
-			setLoadSequence(prev => {
-				if (sequence === prev) {
-					dispatch(setLoading(false));
-				}
-				return prev;
-			});
+			if (sequence === loadSequenceRef.current) {
+				dispatch(setLoading(false));
+			}
 		}
 	}, [playerState.quality, dashFallbackAttemptedTrackId, loadDashTrack, loadStandardTrack, dispatch]);
 
@@ -877,6 +855,38 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ onHeightChange, headless = fa
 		}
 	}, [playerState.isPlaying]);
 
+	useEffect(() => {
+		if (!playerState.isPlaying || !playerState.currentTrack || !audioElementRef.current) {
+			return;
+		}
+		if (isSonglinkTrack(playerState.currentTrack)) {
+			return;
+		}
+		if (streamUrl || dashPlaybackActive || playerState.isLoading) {
+			return;
+		}
+		void loadTrack(playerState.currentTrack);
+	}, [
+		playerState.isPlaying,
+		playerState.currentTrack,
+		playerState.isLoading,
+		streamUrl,
+		dashPlaybackActive,
+		loadTrack
+	]);
+
+	useEffect(() => {
+		if (!playerState.isPlaying || !audioElementRef.current) {
+			return;
+		}
+		if (!streamUrl && !dashPlaybackActive) {
+			return;
+		}
+		audioElementRef.current.play().catch((error) => {
+			console.debug('Playback retry after stream readiness failed', error);
+		});
+	}, [playerState.isPlaying, streamUrl, dashPlaybackActive, playerState.currentTrack]);
+
 	const updateBufferedPercent = useCallback(() => {
 		if (!audioElementRef.current) {
 			setBufferedPercent(0);
@@ -926,11 +936,8 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ onHeightChange, headless = fa
 		}
 		setDashFallbackInFlight(true);
 		setDashFallbackAttemptedTrackId(track.id);
-		let sequence: number;
-		setLoadSequence(prev => {
-			sequence = prev + 1;
-			return sequence;
-		});
+		loadSequenceRef.current += 1;
+		const sequence = loadSequenceRef.current;
 		console.warn(`Attempting lossless fallback after DASH playback error (${reason}).`);
 		try {
 			setDashPlaybackActive(false);
@@ -939,12 +946,9 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ onHeightChange, headless = fa
 			await loadStandardTrack(track as Track, 'LOSSLESS', sequence!);
 		} catch (fallbackError) {
 			console.error('Lossless fallback after DASH playback error failed', fallbackError);
-			setLoadSequence(prev => {
-				if (sequence === prev) {
-					dispatch(setLoading(false));
-				}
-				return prev;
-			});
+			if (sequence === loadSequenceRef.current) {
+				dispatch(setLoading(false));
+			}
 		} finally {
 			setDashFallbackInFlight(false);
 		}
@@ -986,8 +990,14 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ onHeightChange, headless = fa
 			audioElementRef.current.currentTime = playerState.currentTime;
 		}
 
+		if (playerState.isPlaying && audioElementRef.current) {
+			audioElementRef.current.play().catch((error) => {
+				console.debug('Playback resume on loaded data failed', error);
+			});
+		}
+
 		updateMediaSessionPositionState();
-	}, [dispatch, updateBufferedPercent, playerState.currentTime, updateMediaSessionPositionState]);
+	}, [dispatch, updateBufferedPercent, playerState.currentTime, playerState.isPlaying, updateMediaSessionPositionState]);
 
 	const getPercent = (current: number, total: number): number => {
 		if (!Number.isFinite(total) || total <= 0) {
@@ -1028,7 +1038,6 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ onHeightChange, headless = fa
 
 	const handleSeekStart = useCallback((event: React.MouseEvent | React.TouchEvent) => {
 		event.preventDefault();
-		setIsSeeking(true);
 		handleSeek(event);
 
 		const handleMove = (e: MouseEvent | TouchEvent) => {
@@ -1036,7 +1045,6 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ onHeightChange, headless = fa
 		};
 
 		const handleEnd = () => {
-			setIsSeeking(false);
 			document.removeEventListener('mousemove', handleMove as EventListener);
 			document.removeEventListener('mouseup', handleEnd);
 			document.removeEventListener('touchmove', handleMove as EventListener);
@@ -1101,11 +1109,9 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ onHeightChange, headless = fa
 			track,
 			filename,
 			subtitle: track.album?.title ?? track.artist?.name,
-			taskId,
-			controller
+			taskId
 		}));
 
-		setDownloadTaskIdForCurrentTrack(taskId);
 		setIsDownloadingCurrentTrack(true);
 		dispatch(skipFfmpegCountdown());
 
@@ -1136,7 +1142,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ onHeightChange, headless = fa
 				onFfmpegStart: () => dispatch(startFfmpegLoading()),
 				onFfmpegProgress: (value) => dispatch(updateFfmpegProgress(value)),
 				onFfmpegComplete: () => dispatch(completeFfmpeg()),
-				onFfmpegError: (error) => dispatch(errorFfmpeg(error)),
+				onFfmpegError: (error) => dispatch(errorFfmpeg(error instanceof Error ? error.message : typeof error === 'string' ? error : 'Failed to load FFmpeg')),
 				ffmpegAutoTriggered: false,
 				convertAacToMp3,
 				downloadCoverSeperately
@@ -1155,7 +1161,6 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ onHeightChange, headless = fa
 		} finally {
 			releaseTrackDownloadController(taskId);
 			setIsDownloadingCurrentTrack(false);
-			setDownloadTaskIdForCurrentTrack(null);
 		}
 	}, [playerState.currentTrack, isDownloadingCurrentTrack, playerState.quality, userPreferencesState.convertAacToMp3, userPreferencesState.downloadCoversSeperately, dispatch]);
 
