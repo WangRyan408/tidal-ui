@@ -9,4 +9,3 @@ build
 coverage
 *.log
 Dockerfile
-bun.lock

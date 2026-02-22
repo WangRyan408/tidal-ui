@@ -1,7 +1,7 @@
 version: '3'
 
 services:
-  svelte-prod:
+  tidal-ui:
     build:
       context: .
       dockerfile: ./Dockerfile
