@@ -33,7 +33,7 @@ function App() {
       <section className="py-10 text-center">
         <div className="inline-flex items-baseline gap-3">
           <h1 className="gradient-text-hero text-4xl font-bold sm:text-6xl">
-            BiniLossless
+            Tidal Lossless Player/Downloader
           </h1>
           <span className="text-xs text-slate-400">{APP_VERSION}</span>
         </div>
