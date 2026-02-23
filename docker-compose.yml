@@ -1,13 +1,15 @@
-version: '3'
-
 services:
   tidal-ui:
     build:
       context: .
       dockerfile: ./Dockerfile
+    container_name: tidal-ui
     ports:
       - '5000:5000'
     restart: unless-stopped
+    user: "1000:1000"
+    volumes:
+      - /home/wanggang/Downloads:${DOWNLOAD_DIR}
     environment:
       - NODE_ENV=production
       - TITLE=${TITLE}
@@ -23,7 +25,3 @@ services:
       - REDIS_CACHE_MAX_BODY_BYTES=${REDIS_CACHE_MAX_BODY_BYTES}
       - PORT=5000
       - DOWNLOAD_DIR=${DOWNLOAD_DIR}
-
-networks:
-  default:
-    driver: bridge

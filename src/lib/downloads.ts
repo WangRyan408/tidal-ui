@@ -55,24 +55,6 @@ export function buildTrackFilename(
 	convertAacToMp3 = false
 ): string {
 	const extension = getExtensionForQuality(quality, convertAacToMp3);
-	const volumeNumber = Number(track.volumeNumber);
-	const trackNumber = Number(track.trackNumber);
-
-	// Check if this is a multi-volume album by checking:
-	// 1. numberOfVolumes > 1, or
-	// 2. volumeNumber is set and finite (indicating multi-volume structure)
-	const isMultiVolume = (album.numberOfVolumes && album.numberOfVolumes > 1) ||
-		Number.isFinite(volumeNumber);
-
-	let trackPart: string;
-	if (isMultiVolume) {
-		const volumePadded = Number.isFinite(volumeNumber) && volumeNumber > 0 ? `${volumeNumber}`.padStart(2, '0') : '01';
-		const trackPadded = Number.isFinite(trackNumber) && trackNumber > 0 ? `${trackNumber}`.padStart(2, '0') : '00';
-		trackPart = `${volumePadded}-${trackPadded}`;
-	} else {
-		const trackPadded = Number.isFinite(trackNumber) && trackNumber > 0 ? `${trackNumber}`.padStart(2, '0') : '00';
-		trackPart = trackPadded;
-	}
 
 	let title = track.title;
 	if (track.version) {
@@ -81,8 +63,7 @@ export function buildTrackFilename(
 
 	const parts = [
 		sanitizeForFilename(artistName ?? formatArtists(track.artists)),
-		sanitizeForFilename(album.title ?? 'Unknown Album'),
-		`${trackPart} ${sanitizeForFilename(title)}`
+		sanitizeForFilename(title)
 	];
 	return `${parts.join(' - ')}.${extension}`;
 }
