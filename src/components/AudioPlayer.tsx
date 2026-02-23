@@ -4,6 +4,7 @@ import { losslessAPI, DASH_MANIFEST_UNAVAILABLE_CODE, type TrackDownloadProgress
 import type { DashManifestResult, DashManifestWithMetadata } from '@/lib/api';
 import { getProxiedUrl } from '@/lib/config';
 import { buildTrackFilename } from '@/lib/downloads';
+import { generateUUID } from '@/lib/uuid';
 import { formatArtists } from '@/lib/utils';
 import { deriveTrackQuality } from '@/lib/utils/audioQuality';
 import type { Track, AudioQuality, SonglinkTrack, PlayableTrack } from '@/lib/types';
@@ -531,7 +532,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ onHeightChange, headless = fa
 		});
 		hiResObjectUrlRef.current = URL.createObjectURL(blob);
 		const player = await ensureShakaPlayer();
-		
+
 		if (sequence !== loadSequenceRef.current) {
 			return cached!;
 		}
@@ -545,7 +546,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ onHeightChange, headless = fa
 		setDashPlaybackActive(true);
 		setStreamUrl('');
 		setCurrentPlaybackQuality('HI_RES_LOSSLESS');
-		
+
 		if (currentTrackId === track.id) {
 			dispatch(setSampleRate(trackInfo.sampleRate));
 			dispatch(setBitDepth(trackInfo.bitDepth));
@@ -553,7 +554,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ onHeightChange, headless = fa
 				dispatch(setReplayGain(trackInfo.replayGain));
 			}
 		}
-		
+
 		pruneDashManifestCache();
 		return cached!;
 	}, [cacheFlacFallback, revokeHiResObjectUrl, ensureShakaPlayer, currentTrackId, dispatch, pruneDashManifestCache]);
@@ -573,7 +574,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ onHeightChange, headless = fa
 
 		loadSequenceRef.current += 1;
 		const sequence = loadSequenceRef.current;
-		
+
 		dispatch(setLoading(true));
 		setBufferedPercent(0);
 		setCurrentPlaybackQuality(null);
@@ -627,7 +628,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ onHeightChange, headless = fa
 		const current = playerState.currentTrack;
 		if (current && isSonglinkTrack(current)) {
 			console.log('[Conversion Effect] Detected SonglinkTrack:', current.title, 'ID:', current.id);
-			
+
 			if (convertingTracksRef.current.has(current.id)) {
 				console.log('[Conversion Effect] Track already being converted, skipping');
 				return;
@@ -673,7 +674,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ onHeightChange, headless = fa
 			if (isSonglinkTrack(current)) {
 				return;
 			}
-			
+
 			setCurrentTrackId(current.id as number);
 			setStreamUrl('');
 			setBufferedPercent(0);
@@ -1081,7 +1082,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ onHeightChange, headless = fa
 			dispatch(play());
 		}
 
-		audioElementRef.current.play().catch(() => {});
+		audioElementRef.current.play().catch(() => { });
 	}, [dispatch, playerState.isPlaying, updateMediaSessionPositionState]);
 
 	const handleDownloadCurrentTrack = useCallback(async () => {
@@ -1101,10 +1102,10 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ onHeightChange, headless = fa
 			convertAacToMp3
 		);
 
-		const taskId = crypto.randomUUID();
+		const taskId = generateUUID();
 		const controller = new AbortController();
 		registerTrackDownloadController(taskId, controller);
-		
+
 		dispatch(beginTrackDownload({
 			track,
 			filename,

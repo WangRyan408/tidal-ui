@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { Track } from '@/lib/types';
 import { losslessAPI, type TrackDownloadProgress } from '@/lib/api';
 import { buildTrackFilename } from '@/lib/downloads';
+import { generateUUID } from '@/lib/uuid';
 import { useAppDispatch, useAppSelector } from '@/lib/hooks';
 import { setQueue, play, enqueue, enqueueNext } from '@/lib/features/playerSlice';
 import {
@@ -55,10 +56,10 @@ const TrackList: React.FC<TrackListProps> = ({ tracks, showAlbum = true, showArt
   const formatTrackNumber = (track: Track): string => {
     const volumeNumber = Number(track.volumeNumber);
     const trackNumber = Number(track.trackNumber);
-    
-    const isMultiVolume = (track.album?.numberOfVolumes && track.album.numberOfVolumes > 1) || 
-                          Number.isFinite(volumeNumber);
-    
+
+    const isMultiVolume = (track.album?.numberOfVolumes && track.album.numberOfVolumes > 1) ||
+      Number.isFinite(volumeNumber);
+
     if (isMultiVolume) {
       const volumePadded = Number.isFinite(volumeNumber) && volumeNumber > 0 ? volumeNumber.toString() : '1';
       const trackPadded = Number.isFinite(trackNumber) && trackNumber > 0 ? trackNumber.toString() : '0';
@@ -134,13 +135,13 @@ const TrackList: React.FC<TrackListProps> = ({ tracks, showAlbum = true, showArt
       formatArtists(track.artists),
       convertAacToMp3Preference
     );
-    
-    const taskId = crypto.randomUUID();
+
+    const taskId = generateUUID();
     const controller = new AbortController();
     registerTrackDownloadController(taskId, controller);
-    
+
     dispatch(beginTrackDownload({ track, filename, subtitle: showAlbum ? (track.album?.title ?? track.artist?.name) : track.artist?.name, taskId }));
-    
+
     setDownloadTaskIds((prev) => {
       const taskMap = new Map(prev);
       taskMap.set(track.id, taskId);
@@ -297,7 +298,7 @@ const TrackList: React.FC<TrackListProps> = ({ tracks, showAlbum = true, showArt
                 >
                   <Plus size={20} />
                 </button>
-                
+
                 <div className="track-row__action-btn">
                   <ShareButton type="track" id={track.id} iconOnly size={20} title="Share track" />
                 </div>

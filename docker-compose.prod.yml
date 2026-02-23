@@ -1,0 +1,163 @@
+networks:
+  media-net:
+    driver: bridge
+
+# All persistent data stored in /opt/media-server (outside repo)
+x-data-path: &data-path ${DATA_PATH}
+
+services:
+  # WireGuard VPN - only P2P services route through this
+  wireguard:
+    image: lscr.io/linuxserver/wireguard:latest
+    container_name: wireguard
+    # network_mode: host
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    ports:
+      - ${WIREGUARD_SERVERPORT:-51820}:51820/udp
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      # Server mode configuration
+      - SERVERURL=${WIREGUARD_SERVERURL}                # Your public IP/domain, or 'auto' to detect
+      - SERVERPORT=${WIREGUARD_SERVERPORT}
+      - PEERS=${WIREGUARD_PEERS}     # Comma-separated list of client names
+      # Split tunnel: only route VPN subnet + LAN (adjust 192.168.1.0/24 to your LAN)
+      - ALLOWEDIPS=${WIREGUARD_ALLOWEDIPS}
+      - PEERDNS=${WIREGUARD_PEERDNS}
+      - INTERNAL_SUBNET=${WIREGUARD_INTERNAL_SUBNET}
+    volumes:
+      - ${DATA_PATH}/wireguard/config:/config
+      - /lib/modules:/lib/modules:ro
+    restart: unless-stopped
+
+  # Navidrome - direct LAN access, no VPN needed
+  navidrome:
+    image: deluan/navidrome:latest
+    container_name: navidrome
+    user: "${PUID}:${PGID}"
+    ports:
+      - ${NAVIDROME_PORT:-4533}:4533/tcp
+    volumes:
+      - ${DATA_PATH}/navidrome/data:/data
+      - ${DATA_PATH}/data/music:/music:ro
+    networks:
+      - media-net
+    restart: unless-stopped
+    environment:
+      - ND_LOGLEVEL=info
+      - ND_SESSIONTIMEOUT=24h
+      - ND_BASEURL=/navidrome
+
+  # MeTube - web-based YouTube downloader using yt-dlp
+  metube:
+    image: ghcr.io/alexta69/metube:latest
+    container_name: metube
+    user: "${PUID}:${PGID}"
+    ports:
+      - ${METUBE_PORT:-8081}:8081/tcp             # MeTube web UI (LAN)
+    environment:
+      - UID=${PUID}
+      - GID=${PGID}
+      - UMASK=${UMASK:-022}
+      - TZ=${TZ}
+      - DOWNLOAD_DIR=/downloads
+      - AUDIO_DOWNLOAD_DIR=/music
+      - STATE_DIR=/config/.metube
+      - DEFAULT_THEME=dark
+      - BASE_URL=/metube
+      # Audio extraction settings
+      - YTDL_OPTIONS={"format":"bestaudio/best","postprocessors":[{"key":"FFmpegExtractAudio","preferredcodec":"mp3","preferredquality":"320"}]}
+    volumes:
+      - ${DATA_PATH}/metube/config:/config
+      - ${DATA_PATH}/data/downloads/metube:/downloads
+      - ${DATA_PATH}/data/music:/music
+    networks:
+      - media-net
+    restart: unless-stopped
+
+  # ytdl-sub - automated YouTube subscription downloader
+  
+  # ytdl-sub:
+  #   image: ghcr.io/jmbannon/ytdl-sub:latest
+  #   container_name: ytdl-sub
+  #   environment:
+  #     - PUID=${PUID}
+  #     - PGID=${PGID}
+  #     - TZ=${TZ}
+  #   volumes:
+  #     - ${DATA_PATH}/ytdl-sub/config:/config
+  #     - ${DATA_PATH}/data/music:/music
+  #     - ${DATA_PATH}/data/downloads/ytdl-sub:/downloads
+  #   networks:
+  #     - media-net
+  #   restart: unless-stopped
+
+  # Caddy - reverse proxy for domain name mapping and automatic HTTPS
+  caddy:
+    image: caddy:latest
+    container_name: caddy
+    ports:
+      - 80:80/tcp
+      - 443:443/tcp
+      - 443:443/udp          # For HTTP/3 support
+    volumes:
+      - ${DATA_PATH}/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ${DATA_PATH}/caddy/data:/data
+      - ${DATA_PATH}/caddy/config:/config
+    environment:
+      - TZ=${TZ}
+    networks:
+      - media-net
+    restart: unless-stopped
+
+  # SpotDL - Spotify downloader Web UI
+  spotdl:
+    image: spotdl:local
+    pull_policy: if_not_present  # Or 'never' to force local-only usage
+    container_name: spotdl
+    user: "${PUID}:${PGID}"
+    command: web --host ${SPOTDL_HOST:-0.0.0.0} --port ${SPOTDL_PORT:-8888} --keep-alive --client-id ${SPOTDL_CLIENT_ID} --client-secret ${SPOTDL_CLIENT_SECRET} --web-use-output-dir --cookie-file /config/music.youtube.com_cookies_premium.txt
+    environment:
+      - HOME=/config
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - PATH=/app/.venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+    volumes:
+      - ${DATA_PATH}/data/music:/music
+      - ${DATA_PATH}/spotdl/config:/config
+    working_dir: /music
+    ports:
+      - ${SPOTDL_PORT:-8888}:${SPOTDL_PORT:-8888}
+    networks:
+      - media-net
+    restart: unless-stopped
+  
+  tidal-ui:
+    container_name: tidal-ui
+    image: tidal-ui:latest
+    ports:
+      - '5000:5000'
+    networks:
+      - media-net
+    restart: unless-stopped
+    user: '1000:1000'
+    volumes:
+      - ${DATA_PATH}/data/music:/${DOWNLOAD_DIR}
+    environment:
+      - NODE_ENV=production
+      - TITLE=${TITLE}
+      - REDIS_URL=${REDIS_URL}
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
+      - REDIS_USERNAME=${REDIS_USERNAME}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - REDIS_TLS=${REDIS_TLS}
+      - REDIS_CACHE_TTL_SECONDS=${REDIS_CACHE_TTL_SECONDS}
+      - REDIS_CACHE_TTL_SEARCH_SECONDS=${REDIS_CACHE_TTL_SEARCH_SECONDS}
+      - REDIS_CACHE_TTL_TRACK_SECONDS=${REDIS_CACHE_TTL_TRACK_SECONDS}
+      - REDIS_CACHE_MAX_BODY_BYTES=${REDIS_CACHE_MAX_BODY_BYTES}
+      - PORT=5000
+      - DOWNLOAD_DIR=${DOWNLOAD_DIR}

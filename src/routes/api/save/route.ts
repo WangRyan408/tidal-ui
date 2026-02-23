@@ -13,7 +13,7 @@ async function canUseDirectory(dir: string): Promise<boolean> {
 }
 
 async function resolveDownloadDir(): Promise<string> {
-	const configured = process.env.DOWNLOAD_DIR?.trim();
+	const configured = process.env.DOWNLOAD_DIR?.trim().replace(/^["']|["']$/g, '');
 	const defaultDir = path.join(process.cwd(), 'downloads');
 
 	if (!configured) {
@@ -64,7 +64,7 @@ export const Route = createFileRoute('/api/save' as any)({
 					const downloadDir = await resolveDownloadDir();
 
 					const filePath = path.join(downloadDir, filename);
-					
+
 					// Write the file to disk
 					await fs.writeFile(filePath, Buffer.from(arrayBuffer));
 					console.log(`[API/SAVE] Successfully saved file to ${filePath}`);

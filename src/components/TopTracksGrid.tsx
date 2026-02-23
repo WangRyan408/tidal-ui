@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import type { Track } from '@/lib/types';
 import { losslessAPI, type TrackDownloadProgress } from '@/lib/api';
 import { buildTrackFilename } from '@/lib/downloads';
+import { generateUUID } from '@/lib/uuid';
 import { useAppDispatch, useAppSelector } from '@/lib/hooks';
 import { setQueue, play, enqueue, enqueueNext } from '@/lib/features/playerSlice';
 import {
@@ -137,13 +138,13 @@ const TopTracksGrid: React.FC<TopTracksGridProps> = ({ tracks, maxTracks = 6, co
       formatArtists(track.artists),
       convertAacToMp3Preference
     );
-    
-    const taskId = crypto.randomUUID();
+
+    const taskId = generateUUID();
     const controller = new AbortController();
     registerTrackDownloadController(taskId, controller);
-    
+
     dispatch(beginTrackDownload({ track, filename, subtitle: track.album?.title ?? track.artist?.name, taskId }));
-    
+
     setDownloadTaskIds((prev) => {
       const taskMap = new Map(prev);
       taskMap.set(track.id, taskId);
@@ -247,9 +248,8 @@ const TopTracksGrid: React.FC<TopTracksGridProps> = ({ tracks, maxTracks = 6, co
 
               <div className="min-w-0 flex-1">
                 <h3
-                  className={`truncate text-lg font-semibold ${
-                    isCurrentTrack(track) ? 'text-blue-500' : 'text-white group-hover:text-blue-400'
-                  }`}
+                  className={`truncate text-lg font-semibold ${isCurrentTrack(track) ? 'text-blue-500' : 'text-white group-hover:text-blue-400'
+                    }`}
                 >
                   {track.title}
                   {track.explicit && <span className="ml-1 text-xs text-gray-500">[E]</span>}

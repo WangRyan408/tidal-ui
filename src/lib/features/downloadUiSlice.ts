@@ -3,6 +3,7 @@ import type { PayloadAction } from '@reduxjs/toolkit';
 import type { PlayableTrack } from '@/lib/types';
 import { isSonglinkTrack } from '@/lib/types';
 import { formatArtists } from '@/lib/utils';
+import { generateUUID } from '@/lib/uuid';
 
 export type FfmpegPhase = 'idle' | 'countdown' | 'loading' | 'ready' | 'error';
 
@@ -125,7 +126,7 @@ export const downloadUiSlice = createSlice({
 		) => {
 			const { track, filename, subtitle } = action.payload;
 			const taskId =
-				action.payload.taskId ?? action.payload.id ?? crypto.randomUUID();
+				action.payload.taskId ?? action.payload.id ?? generateUUID();
 			const resolvedSubtitle =
 				subtitle ?? (isSonglinkTrack(track) ? track.artistName : formatArtists(track.artists));
 
