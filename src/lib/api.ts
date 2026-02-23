@@ -2543,6 +2543,14 @@ class LosslessAPI {
 			if (error instanceof Error && error.message === RATE_LIMIT_ERROR_MESSAGE) {
 				throw error;
 			}
+			if (error instanceof Error) {
+				if (error.message.startsWith('Failed to save to server:')) {
+					throw error;
+				}
+				if (error.message.startsWith('Failed to save cover:')) {
+					throw error;
+				}
+			}
 			throw new Error(
 				'Download failed. The stream URL may require a proxy. Please try streaming instead.'
 			);

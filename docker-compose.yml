@@ -1,15 +1,13 @@
 services:
   tidal-ui:
-    build:
-      context: .
-      dockerfile: ./Dockerfile
+    image: tidal-ui:latest
     container_name: tidal-ui
     ports:
       - '5000:5000'
     restart: unless-stopped
     user: "1000:1000"
     volumes:
-      - /home/wanggang/Downloads:${DOWNLOAD_DIR}
+      - ${DATA_PATH}:/${DOWNLOAD_DIR}
     environment:
       - NODE_ENV=production
       - TITLE=${TITLE}
