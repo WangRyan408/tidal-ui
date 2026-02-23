@@ -7,9 +7,9 @@ services:
     ports:
       - '5000:5000'
     restart: unless-stopped
-    user: "1000:1000"
     volumes:
-      - /home/wanggang/Downloads:${DOWNLOAD_DIR}
+      - ${DATA_PATH}/data/music:/${DOWNLOAD_DIR}
+    user: "1000:1000"
     environment:
       - NODE_ENV=production
       - TITLE=${TITLE}
