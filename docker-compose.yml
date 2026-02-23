@@ -5,9 +5,9 @@ services:
     ports:
       - '5000:5000'
     restart: unless-stopped
-    user: "1000:1000"
     volumes:
       - ${DATA_PATH}:/${DOWNLOAD_DIR}
+    user: "1000:1000"
     environment:
       - NODE_ENV=production
       - TITLE=${TITLE}
